@@ -18,6 +18,7 @@ import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
+import android.util.Log;
 import android.view.*;
 import android.widget.Toast;
 
@@ -29,12 +30,9 @@ public class MainActivity extends AppCompatActivity
     public static DatabaseHandler databaseHandler = null;
     public static CardViewRecyclerAdapter recentAdapter;
     public static CardViewRecyclerAdapter contactsAdapter;
+    public static CardViewRecyclerAdapter filterAdapter;
+
     private NotificationReceiver notificationReceiver;
-
-    static
-    {
-
-    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState)
@@ -157,31 +155,44 @@ public class MainActivity extends AppCompatActivity
         {
             Bundle args = getArguments();
             int tabPosition = args.getInt(TAB_POSITION);
-            LinkedHashMap<String, LinkedList<NotificationObject>> map = new LinkedHashMap<>();
 
             if (tabPosition == 1)
             {
+                LinkedHashMap<String, LinkedList<NotificationObject>> map = new LinkedHashMap<>();
+
                 View v = inflater.inflate(R.layout.fragment_list_view, container, false);
                 map = databaseHandler.getAllNotificationFromTable(DatabaseHandler.MAIN_TABLE);
                 RecyclerView recyclerView = (RecyclerView) v.findViewById(R.id.recyclerview);
                 recyclerView.setLayoutManager(new LinearLayoutManager(getActivity()));
                 recentAdapter = new CardViewRecyclerAdapter(tabPosition, getContext(), map);
+                Log.v("MainActivity",map.size()+" size");
                 recyclerView.setAdapter(recentAdapter);
                 return v;
             }
             else if (tabPosition == 2)
             {
-                View v = inflater.inflate(R.layout.fragment_list_view, container, false);
+                LinkedHashMap<String, LinkedList<NotificationObject>> map = new LinkedHashMap<>();
+
+                View v = inflater.inflate(R.layout.contacts_list_view, container, false);
                 map = databaseHandler.getAllContactNotificationsFromTable(DatabaseHandler.MAIN_TABLE);
-                RecyclerView recyclerView = (RecyclerView) v.findViewById(R.id.recyclerview);
+                RecyclerView recyclerView = (RecyclerView) v.findViewById(R.id.contactsview);
                 recyclerView.setLayoutManager(new LinearLayoutManager(getActivity()));
                 contactsAdapter = new CardViewRecyclerAdapter(tabPosition, getContext(), map);
                 recyclerView.setAdapter(contactsAdapter);
                 return v;
             }
-            else if (tabPosition == 3)
+            else if (tabPosition == 0)
             {
-                return null;
+                LinkedHashMap<String, LinkedList<NotificationObject>> map = new LinkedHashMap<>();
+
+                //TODO: have a different then map and different recycler adapter
+                View v = inflater.inflate(R.layout.filter_list_view, container, false);
+                map = databaseHandler.getAllFiltersFromTable();
+                RecyclerView recyclerView = (RecyclerView) v.findViewById(R.id.filterview);
+                recyclerView.setLayoutManager(new LinearLayoutManager(getActivity()));
+                filterAdapter = new CardViewRecyclerAdapter(tabPosition, getContext(), map);
+                recyclerView.setAdapter(filterAdapter);
+                return v;
             }
             else
             {
@@ -200,8 +211,14 @@ public class MainActivity extends AppCompatActivity
             NotificationObject temp = new NotificationObject(intent.getStringExtra(getString(R.string.notification_package)), intent.getStringExtra(getString(R.string.notification_title)),
                     intent.getStringExtra(getString(R.string.notification_content)), intent.getStringExtra(getString(R.string.notification_contact)),
                     intent.getLongExtra(getString(R.string.notification_time), 0));
-            recentAdapter.addNotificationObject(temp, 1);
-            contactsAdapter.addNotificationObject(temp, 2);
+            if (recentAdapter != null)
+            {
+                recentAdapter.addNotificationObject(temp, 1);
+            }
+            if (contactsAdapter != null)
+            {
+                contactsAdapter.addNotificationObject(temp, 2);
+            }
         }
     }
 

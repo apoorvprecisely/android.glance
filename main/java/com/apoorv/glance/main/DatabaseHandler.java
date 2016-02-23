@@ -29,8 +29,7 @@ public class DatabaseHandler extends SQLiteOpenHelper
     private static final String NOTIFICATION_CONTACT = "contact";
     private static final String NOTIFICATION_ALL = "all_content";
 
-    private static final String[] MAIN_TABLE_COLUMNS = {NOTIFICATION_ID, NOTIFICATION_PACKAGE, NOTIFICATION_TITLE, NOTIFICATION_CONTENT, NOTIFICATION_CONTACT, NOTIFICATION_TIME};
-    private static final String[] SEARCH_TABLE_COLUMNS = {NOTIFICATION_ID, NOTIFICATION_ALL};
+    private static final String FILTER_TABLE = "FilterTable";
 
     public DatabaseHandler(Context context)
     {
@@ -41,10 +40,18 @@ public class DatabaseHandler extends SQLiteOpenHelper
     public void onCreate(SQLiteDatabase db)
     {
         createNotificationTable(db, MAIN_TABLE);
+        createFilterTable(db, FILTER_TABLE);
         // createNotificationTable(db, MAIN_ARCHIVE_TABLE);
         //FTS TABLE
         //createSearchTable(db, SEARCH_TABLE);
         //createSearchTable(db, SEARCH_ARCHIVE_TABLE);
+    }
+
+    private void createFilterTable(SQLiteDatabase db, String filterTable)
+    {
+        String createQuery = "CREATE TABLE " + filterTable + " ( " + NOTIFICATION_ID + " INTEGER PRIMARY KEY AUTOINCREMENT, "
+                + NOTIFICATION_PACKAGE + " TEXT, " + NOTIFICATION_TITLE + " TEXT, " + NOTIFICATION_CONTENT + " TEXT )";
+        db.execSQL(createQuery);
     }
 
     private void createNotificationTable(SQLiteDatabase db, String tableName)
@@ -97,6 +104,15 @@ public class DatabaseHandler extends SQLiteOpenHelper
         return values;
     }
 
+    private ContentValues createFilterValueFromForm(String title, String packageName, String content)
+    {
+        ContentValues values = new ContentValues();
+        values.put(NOTIFICATION_TITLE, title);
+        values.put(NOTIFICATION_PACKAGE, packageName);
+        values.put(NOTIFICATION_CONTENT, content);
+        return values;
+    }
+
     public void addNotificationInDatabase(String tableName, NotificationObject notificationObject)
     {
         SQLiteDatabase db = this.getWritableDatabase();
@@ -105,10 +121,18 @@ public class DatabaseHandler extends SQLiteOpenHelper
         db.close();
     }
 
+    public void addFilterInDatabase(String title, String packageName, String content)
+    {
+        SQLiteDatabase db = this.getWritableDatabase();
+        ContentValues values = createFilterValueFromForm(title, packageName, content);
+        db.insert(FILTER_TABLE, null, values);
+        db.close();
+    }
+
     @Override
     public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion)
     {
-
+//TODO: implement
     }
 
     public LinkedHashMap<String, LinkedList<NotificationObject>> getAllContactNotificationsFromTable(String mainTable)
@@ -133,6 +157,35 @@ public class DatabaseHandler extends SQLiteOpenHelper
                     map.put(notificationObject.getContact(), new LinkedList<NotificationObject>());
                 }
                 map.get(notificationObject.getContact()).add(notificationObject);
+            }
+            while (cursor.moveToNext());
+        }
+        return map;
+    }
+
+    public LinkedHashMap<String, LinkedList<NotificationObject>> getAllFiltersFromTable()
+    {
+        LinkedHashMap<String, LinkedList<NotificationObject>> map = new LinkedHashMap<>();
+        String query = "SELECT  * FROM " + FILTER_TABLE;
+        SQLiteDatabase db = this.getWritableDatabase();
+        Cursor cursor = db.rawQuery(query, null);
+
+        NotificationObject notificationObject = null;
+        if (cursor.moveToFirst())
+        {
+            do
+            {
+                notificationObject = new NotificationObject(cursor.getString(1), cursor.getString(2), cursor.getString(3), "null", -1);
+                //TODO: change this please
+                if (notificationObject.getContact() == null)
+                {
+                    notificationObject.setContact("null");
+                }
+                if (!map.containsKey(notificationObject.getPackageName()))
+                {
+                    map.put(notificationObject.getPackageName(), new LinkedList<NotificationObject>());
+                }
+                map.get(notificationObject.getPackageName()).add(notificationObject);
             }
             while (cursor.moveToNext());
         }
