@@ -27,6 +27,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:background="?attr/colorPrimary"
+                    app:tabIndicatorColor="#FFFFFF"
                     app:tabGravity="fill"
                     android:theme="@style/ThemeOverlay.AppCompat.Dark"/>
 
@@ -37,7 +38,15 @@
                     android:layout_weight="1"/>
 
         </LinearLayout>
-
+        <android.support.design.widget.FloatingActionButton
+                android:id="@+id/fab"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_alignParentBottom="true"
+                android:layout_alignParentRight="true"
+                android:layout_marginRight="@dimen/activity_horizontal_margin"
+                android:layout_marginBottom="@dimen/activity_vertical_margin"
+                android:src="@mipmap/ic_icon_al" />
 
     </RelativeLayout>
 

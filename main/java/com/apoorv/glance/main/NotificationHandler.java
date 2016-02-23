@@ -10,7 +10,6 @@ import android.service.notification.StatusBarNotification;
 import android.util.Log;
 
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 
@@ -22,7 +21,8 @@ public class NotificationHandler extends NotificationListenerService
     private String TAG = this.getClass().getSimpleName();
     DatabaseHandler databaseHandler = new DatabaseHandler(this);
     private static final LinkedList<String> BLACKLISTED_PACKAGES = new LinkedList<>();
-    private static HashMap<String, String> contacts = null;
+    public static HashMap<String, String> contactVsKey = null;
+    public static HashMap<String, String> keyVsContact = null;
 
     static
     {
@@ -34,15 +34,18 @@ public class NotificationHandler extends NotificationListenerService
 
     private void initContacts()
     {
-        if (contacts == null)
+        if (contactVsKey == null)
         {
-            contacts = new HashMap<>();
+            contactVsKey = new HashMap<>();
+            keyVsContact = new HashMap<>();
             Cursor phones = getContentResolver().query(ContactsContract.CommonDataKinds.Phone.CONTENT_URI, null, null, null, null);
             while (phones.moveToNext())
             {
                 String name = phones.getString(phones.getColumnIndex(ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME));
-                String key = phones.getString(phones.getColumnIndex(ContactsContract.CommonDataKinds.Phone.CONTACT_ID));
-                contacts.put(name, key);
+                String key = phones.getString(phones.getColumnIndex(ContactsContract.CommonDataKinds.Phone._ID));
+                contactVsKey.put(name, key);
+                keyVsContact.put(key, name);
+                // Log.v(TAG, name + " " + key);
             }
             phones.close();
         }
@@ -53,6 +56,7 @@ public class NotificationHandler extends NotificationListenerService
     {
         super.onCreate();
         databaseHandler.onUpgrade(databaseHandler.getWritableDatabase(), 1, 2);
+        initContacts();
     }
 
 
@@ -66,7 +70,6 @@ public class NotificationHandler extends NotificationListenerService
     public void onNotificationPosted(StatusBarNotification sbn)
     {
         //TODO: handleNotificationFiltering
-        initContacts();
         NotificationObject notificationObject = generateNotificationObject(sbn);
         if (notificationObject != null)
         {
@@ -105,6 +108,7 @@ public class NotificationHandler extends NotificationListenerService
             Bundle bundledData = notification.extras;
             String packageName = sbn.getPackageName();
             String notificationTitle = bundledData.getString(Notification.EXTRA_TITLE);
+//TODO: handle spannable string youtube
             if (notificationTitle == null)
             {
                 return null;
@@ -122,6 +126,7 @@ public class NotificationHandler extends NotificationListenerService
                 return null;
             }
             String contactId = processDataForContact(notificationTitle, notificationContentString);
+            Log.v(TAG, "matched" + contactId);
             return new NotificationObject(packageName, notificationTitle, notificationContentString, contactId, System.currentTimeMillis());
         }
 
@@ -129,14 +134,13 @@ public class NotificationHandler extends NotificationListenerService
 
     private String processDataForContact(String notificationTitle, String notificationContentString)
     {
-        Iterator iter = contacts.keySet().iterator();
+        Iterator iter = contactVsKey.keySet().iterator();
         while (iter.hasNext())
         {
             String name = iter.next().toString();
-            if (notificationTitle.contains(name))
+            if (notificationTitle.contains(name) || notificationContentString.contains(name))
             {
-                Log.v(TAG, "matched " + name);
-                return contacts.get(name);
+                return contactVsKey.get(name);
             }
         }
         return "-1";

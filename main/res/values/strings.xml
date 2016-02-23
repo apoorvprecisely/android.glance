@@ -25,4 +25,5 @@
     <string name="notification_contact">contact</string>
     <string name="notification_time">time</string>
     <string name="notification_package">package</string>
+    <string name="title_activity_create_filter">Add Filter</string>
 </resources>

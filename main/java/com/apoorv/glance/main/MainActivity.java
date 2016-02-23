@@ -4,10 +4,10 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
-import android.database.Cursor;
 import android.os.Bundle;
-import android.provider.ContactsContract;
 import android.support.annotation.Nullable;
+import android.support.design.widget.FloatingActionButton;
+import android.support.design.widget.Snackbar;
 import android.support.design.widget.TabLayout;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
@@ -19,13 +19,16 @@ import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
 import android.view.*;
+import android.widget.Toast;
 
+import java.util.LinkedHashMap;
 import java.util.LinkedList;
 
 public class MainActivity extends AppCompatActivity
 {
     public static DatabaseHandler databaseHandler = null;
-    public static CardViewRecyclerAdapter mAdapter;
+    public static CardViewRecyclerAdapter recentAdapter;
+    public static CardViewRecyclerAdapter contactsAdapter;
     private NotificationReceiver notificationReceiver;
 
     static
@@ -41,8 +44,8 @@ public class MainActivity extends AppCompatActivity
 
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
-        ActionBar actionBar = getSupportActionBar();
-        actionBar.setDisplayHomeAsUpEnabled(true);
+        getSupportActionBar().setDisplayHomeAsUpEnabled(false);
+        getSupportActionBar().setHomeButtonEnabled(false);
         if (databaseHandler == null)
         {
             databaseHandler = new DatabaseHandler(this);
@@ -53,6 +56,45 @@ public class MainActivity extends AppCompatActivity
         registerReceiver(notificationReceiver, filter);
         TabViewPagerAdapter adapter = new TabViewPagerAdapter(getSupportFragmentManager());
         ViewPager viewPager = (ViewPager) findViewById(R.id.viewpager);
+        final FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
+        fab.setOnClickListener(new View.OnClickListener()
+        {
+            @Override
+            public void onClick(View v)
+            {
+                Intent i = new Intent(MainActivity.this, CreateFilterActivity.class);
+                startActivity(i);
+            }
+        });
+        viewPager.addOnPageChangeListener(new ViewPager.OnPageChangeListener()
+        {
+            @Override
+            public void onPageScrolled(int position, float positionOffset, int positionOffsetPixels)
+            {
+            }
+
+            @Override
+            public void onPageSelected(int position)
+            {
+
+                switch (position)
+                {
+                    case 0:
+                        fab.show();
+                        break;
+
+                    default:
+                        fab.hide();
+                        break;
+                }
+            }
+
+            @Override
+            public void onPageScrollStateChanged(int state)
+            {
+
+            }
+        });
         viewPager.setAdapter(adapter);
         TabLayout tabLayout = (TabLayout) findViewById(R.id.tablayout);
         tabLayout.setupWithViewPager(viewPager);
@@ -115,24 +157,38 @@ public class MainActivity extends AppCompatActivity
         {
             Bundle args = getArguments();
             int tabPosition = args.getInt(TAB_POSITION);
+            LinkedHashMap<String, LinkedList<NotificationObject>> map = new LinkedHashMap<>();
+
             if (tabPosition == 1)
             {
-                LinkedList<NotificationObject> notificationObjects = databaseHandler.getAllNotificationFromTable(DatabaseHandler.MAIN_TABLE);
                 View v = inflater.inflate(R.layout.fragment_list_view, container, false);
+                map = databaseHandler.getAllNotificationFromTable(DatabaseHandler.MAIN_TABLE);
                 RecyclerView recyclerView = (RecyclerView) v.findViewById(R.id.recyclerview);
                 recyclerView.setLayoutManager(new LinearLayoutManager(getActivity()));
-                mAdapter = new CardViewRecyclerAdapter(getContext(), notificationObjects);
-                recyclerView.setAdapter(mAdapter);
+                recentAdapter = new CardViewRecyclerAdapter(tabPosition, getContext(), map);
+                recyclerView.setAdapter(recentAdapter);
                 return v;
             }
-            else if (tabPosition==2)
+            else if (tabPosition == 2)
+            {
+                View v = inflater.inflate(R.layout.fragment_list_view, container, false);
+                map = databaseHandler.getAllContactNotificationsFromTable(DatabaseHandler.MAIN_TABLE);
+                RecyclerView recyclerView = (RecyclerView) v.findViewById(R.id.recyclerview);
+                recyclerView.setLayoutManager(new LinearLayoutManager(getActivity()));
+                contactsAdapter = new CardViewRecyclerAdapter(tabPosition, getContext(), map);
+                recyclerView.setAdapter(contactsAdapter);
+                return v;
+            }
+            else if (tabPosition == 3)
+            {
+                return null;
+            }
+            else
             {
                 return null;
             }
         }
-
     }
-
 
     class NotificationReceiver extends BroadcastReceiver
     {
@@ -140,11 +196,12 @@ public class MainActivity extends AppCompatActivity
         @Override
         public void onReceive(Context context, Intent intent)
         {
-            CardViewRecyclerAdapter.currentNotificationObjects.add(new NotificationObject(intent.getStringExtra(getString(R.string.notification_package)), intent.getStringExtra(getString(R.string.notification_title)),
-                    intent.getStringExtra(getString(R.string.notification_content)), intent.getStringExtra(getString(R.string.notification_contact)),
-                    intent.getLongExtra(getString(R.string.notification_time), 0)));
-            mAdapter.updateReceiptsList();
 
+            NotificationObject temp = new NotificationObject(intent.getStringExtra(getString(R.string.notification_package)), intent.getStringExtra(getString(R.string.notification_title)),
+                    intent.getStringExtra(getString(R.string.notification_content)), intent.getStringExtra(getString(R.string.notification_contact)),
+                    intent.getLongExtra(getString(R.string.notification_time), 0));
+            recentAdapter.addNotificationObject(temp, 1);
+            contactsAdapter.addNotificationObject(temp, 2);
         }
     }
 

@@ -5,8 +5,8 @@ import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
-import android.provider.ContactsContract;
 
+import java.util.LinkedHashMap;
 import java.util.LinkedList;
 
 /**
@@ -62,9 +62,9 @@ public class DatabaseHandler extends SQLiteOpenHelper
         db.execSQL(createQuery);
     }
 
-    public LinkedList<NotificationObject> getAllNotificationFromTable(String tableName)
+    public LinkedHashMap<String, LinkedList<NotificationObject>> getAllNotificationFromTable(String tableName)
     {
-        LinkedList notificationList = new LinkedList();
+        LinkedHashMap<String, LinkedList<NotificationObject>> map = new LinkedHashMap<>();
         String query = "SELECT  * FROM " + tableName + " ORDER BY " + NOTIFICATION_TIME + " DESC";
         SQLiteDatabase db = this.getWritableDatabase();
         Cursor cursor = db.rawQuery(query, null);
@@ -75,12 +75,15 @@ public class DatabaseHandler extends SQLiteOpenHelper
             do
             {
                 notificationObject = new NotificationObject(cursor.getString(1), cursor.getString(2), cursor.getString(3), cursor.getString(4), cursor.getLong(5));
-                notificationList.add(notificationObject);
+                if (!map.containsKey(notificationObject.getPackageName()))
+                {
+                    map.put(notificationObject.getPackageName(), new LinkedList<NotificationObject>());
+                }
+                map.get(notificationObject.getPackageName()).add(notificationObject);
             }
             while (cursor.moveToNext());
         }
-        return notificationList;
-        //TODO:instead of reading from sql always append new notifs from broadcaster
+        return map;
     }
 
     private ContentValues createContentValueFromObject(NotificationObject NotificationObject)
@@ -89,6 +92,7 @@ public class DatabaseHandler extends SQLiteOpenHelper
         values.put(NOTIFICATION_TITLE, NotificationObject.getTitle());
         values.put(NOTIFICATION_PACKAGE, NotificationObject.getPackageName());
         values.put(NOTIFICATION_CONTENT, NotificationObject.getContent());
+        values.put(NOTIFICATION_CONTACT, NotificationObject.getContact());
         values.put(NOTIFICATION_TIME, NotificationObject.getTime());
         return values;
     }
@@ -105,5 +109,33 @@ public class DatabaseHandler extends SQLiteOpenHelper
     public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion)
     {
 
+    }
+
+    public LinkedHashMap<String, LinkedList<NotificationObject>> getAllContactNotificationsFromTable(String mainTable)
+    {
+        LinkedHashMap<String, LinkedList<NotificationObject>> map = new LinkedHashMap<>();
+        String query = "SELECT  * FROM " + mainTable + " WHERE " + NOTIFICATION_CONTACT + " !=-1 ORDER BY " + NOTIFICATION_TIME + " DESC";
+        SQLiteDatabase db = this.getWritableDatabase();
+        Cursor cursor = db.rawQuery(query, null);
+
+        NotificationObject notificationObject = null;
+        if (cursor.moveToFirst())
+        {
+            do
+            {
+                notificationObject = new NotificationObject(cursor.getString(1), cursor.getString(2), cursor.getString(3), cursor.getString(4), cursor.getLong(5));
+                if (notificationObject.getContact() == null)
+                {
+                    notificationObject.setContact("null");
+                }
+                if (!map.containsKey(notificationObject.getContact()))
+                {
+                    map.put(notificationObject.getContact(), new LinkedList<NotificationObject>());
+                }
+                map.get(notificationObject.getContact()).add(notificationObject);
+            }
+            while (cursor.moveToNext());
+        }
+        return map;
     }
 }
