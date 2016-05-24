@@ -39,7 +39,6 @@ public class CardViewRecyclerAdapter extends RecyclerView.Adapter<CardHolder>
     public CardHolder onCreateViewHolder(ViewGroup viewGroup, int i)
     {
         View v = LayoutInflater.from(viewGroup.getContext()).inflate(R.layout.card_view, viewGroup, false);
-
         return new CardHolder(v);
     }
 
@@ -51,7 +50,29 @@ public class CardViewRecyclerAdapter extends RecyclerView.Adapter<CardHolder>
 
         //String content = item.getTitle() + "\n" + item.getContent() + "\n" + item.getContact() + "\n" + simpleDateFormat.format(resultDate);
         //TODO:add contact
-        if (tabPosition == 1)
+        if (tabPosition == 0)
+        {
+            String content = "<b>" + item.getTitle() + "</b><br/>" + item.getContent() + "<br/>" + simpleDateFormat.format(resultDate);
+            viewHolder.cardText.setText(Html.fromHtml(content));
+            Drawable icon = null;
+            try
+            {
+                icon = context.getPackageManager().getApplicationIcon(item.getPackageName());
+            }
+            catch (PackageManager.NameNotFoundException e)
+            {
+                try
+                {
+                    icon = context.getPackageManager().getApplicationIcon("com.android.systemui");
+                }
+                catch (PackageManager.NameNotFoundException e1)
+                {
+                    e1.printStackTrace();
+                }
+            }
+            viewHolder.cardIconImage.setImageDrawable(icon);
+        }
+        else if (tabPosition == 1)
         {
             PackageManager packageManager = context.getPackageManager();
             String content = "";

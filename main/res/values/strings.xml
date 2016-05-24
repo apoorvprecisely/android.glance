@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">GLANCE</string>
+    <string name="app_name">Glance</string>
 
     <string name="hello_world">Hello world!</string>
     <string name="action_settings">Settings</string>
@@ -26,4 +26,5 @@
     <string name="notification_time">time</string>
     <string name="notification_package">package</string>
     <string name="title_activity_create_filter">Add Filter</string>
+    <string name="title_activity_details">DetailsActivity</string>
 </resources>

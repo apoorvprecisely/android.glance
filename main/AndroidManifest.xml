@@ -32,6 +32,10 @@
             android:name=".CreateFilterActivity"
             android:label="@string/title_activity_create_filter" >
         </activity>
+        <activity
+            android:name=".DetailsActivity"
+            android:label="@string/title_activity_details" >
+        </activity>
     </application>
 
 </manifest>

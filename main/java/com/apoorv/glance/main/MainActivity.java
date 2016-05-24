@@ -22,17 +22,20 @@ import android.util.Log;
 import android.view.*;
 import android.widget.Toast;
 
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
+import java.util.List;
 
 public class MainActivity extends AppCompatActivity
 {
     public static DatabaseHandler databaseHandler = null;
-    public static CardViewRecyclerAdapter recentAdapter;
-    public static CardViewRecyclerAdapter contactsAdapter;
-    public static CardViewRecyclerAdapter filterAdapter;
-
     private NotificationReceiver notificationReceiver;
+
+    public static DatabaseHandler getDatabaseHandler()
+    {
+        return databaseHandler;
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState)
@@ -52,7 +55,6 @@ public class MainActivity extends AppCompatActivity
         IntentFilter filter = new IntentFilter();
         filter.addAction(getString(R.string.base_intent));
         registerReceiver(notificationReceiver, filter);
-        TabViewPagerAdapter adapter = new TabViewPagerAdapter(getSupportFragmentManager());
         ViewPager viewPager = (ViewPager) findViewById(R.id.viewpager);
         final FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
         fab.setOnClickListener(new View.OnClickListener()
@@ -74,16 +76,13 @@ public class MainActivity extends AppCompatActivity
             @Override
             public void onPageSelected(int position)
             {
-
-                switch (position)
+                if (position == 0)
                 {
-                    case 0:
-                        fab.show();
-                        break;
-
-                    default:
-                        fab.hide();
-                        break;
+                    fab.show();
+                }
+                else
+                {
+                    fab.hide();
                 }
             }
 
@@ -93,7 +92,7 @@ public class MainActivity extends AppCompatActivity
 
             }
         });
-        viewPager.setAdapter(adapter);
+        setupViewPager(viewPager);
         TabLayout tabLayout = (TabLayout) findViewById(R.id.tablayout);
         tabLayout.setupWithViewPager(viewPager);
     }
@@ -102,7 +101,6 @@ public class MainActivity extends AppCompatActivity
     @Override
     public boolean onCreateOptionsMenu(Menu menu)
     {
-        // Inflate the menu; this adds items to the action bar if it is present.
         getMenuInflater().inflate(R.menu.menu_main, menu);
         return true;
     }
@@ -117,113 +115,28 @@ public class MainActivity extends AppCompatActivity
     @Override
     public boolean onOptionsItemSelected(MenuItem item)
     {
-        // Handle action bar item clicks here. The action bar will
-        // automatically handle clicks on the Home/Up button, so long
-        // as you specify a parent activity in AndroidManifest.xml.
         int id = item.getItemId();
-
-        //noinspection SimplifiableIfStatement
         if (id == R.id.action_settings)
         {
             return true;
         }
-
         return super.onOptionsItemSelected(item);
     }
 
-    public static class ResultFragment extends Fragment
+
+    private void setupViewPager(ViewPager viewPager)
     {
-        private static final String TAB_POSITION = "tab_position";
-
-        public ResultFragment()
-        {
-
-        }
-
-        public static ResultFragment newInstance(int tabPosition)
-        {
-            ResultFragment fragment = new ResultFragment();
-            Bundle args = new Bundle();
-            args.putInt(TAB_POSITION, tabPosition);
-            fragment.setArguments(args);
-            return fragment;
-        }
-
-        @Nullable
-        @Override
-        public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState)
-        {
-            Bundle args = getArguments();
-            int tabPosition = args.getInt(TAB_POSITION);
-
-            if (tabPosition == 1)
-            {
-                LinkedHashMap<String, LinkedList<NotificationObject>> map = new LinkedHashMap<>();
-
-                View v = inflater.inflate(R.layout.fragment_list_view, container, false);
-                map = databaseHandler.getAllNotificationFromTable(DatabaseHandler.MAIN_TABLE);
-                RecyclerView recyclerView = (RecyclerView) v.findViewById(R.id.recyclerview);
-                recyclerView.setLayoutManager(new LinearLayoutManager(getActivity()));
-                recentAdapter = new CardViewRecyclerAdapter(tabPosition, getContext(), map);
-                Log.v("MainActivity",map.size()+" size");
-                recyclerView.setAdapter(recentAdapter);
-                return v;
-            }
-            else if (tabPosition == 2)
-            {
-                LinkedHashMap<String, LinkedList<NotificationObject>> map = new LinkedHashMap<>();
-
-                View v = inflater.inflate(R.layout.contacts_list_view, container, false);
-                map = databaseHandler.getAllContactNotificationsFromTable(DatabaseHandler.MAIN_TABLE);
-                RecyclerView recyclerView = (RecyclerView) v.findViewById(R.id.contactsview);
-                recyclerView.setLayoutManager(new LinearLayoutManager(getActivity()));
-                contactsAdapter = new CardViewRecyclerAdapter(tabPosition, getContext(), map);
-                recyclerView.setAdapter(contactsAdapter);
-                return v;
-            }
-            else if (tabPosition == 0)
-            {
-                LinkedHashMap<String, LinkedList<NotificationObject>> map = new LinkedHashMap<>();
-
-                //TODO: have a different then map and different recycler adapter
-                View v = inflater.inflate(R.layout.filter_list_view, container, false);
-                map = databaseHandler.getAllFiltersFromTable();
-                RecyclerView recyclerView = (RecyclerView) v.findViewById(R.id.filterview);
-                recyclerView.setLayoutManager(new LinearLayoutManager(getActivity()));
-                filterAdapter = new CardViewRecyclerAdapter(tabPosition, getContext(), map);
-                recyclerView.setAdapter(filterAdapter);
-                return v;
-            }
-            else
-            {
-                return null;
-            }
-        }
-    }
-
-    class NotificationReceiver extends BroadcastReceiver
-    {
-
-        @Override
-        public void onReceive(Context context, Intent intent)
-        {
-
-            NotificationObject temp = new NotificationObject(intent.getStringExtra(getString(R.string.notification_package)), intent.getStringExtra(getString(R.string.notification_title)),
-                    intent.getStringExtra(getString(R.string.notification_content)), intent.getStringExtra(getString(R.string.notification_contact)),
-                    intent.getLongExtra(getString(R.string.notification_time), 0));
-            if (recentAdapter != null)
-            {
-                recentAdapter.addNotificationObject(temp, 1);
-            }
-            if (contactsAdapter != null)
-            {
-                contactsAdapter.addNotificationObject(temp, 2);
-            }
-        }
+        TabViewPagerAdapter adapter = new TabViewPagerAdapter(getSupportFragmentManager());
+        adapter.addFragment(new RulesFragment(), "RULES");
+        adapter.addFragment(new RecentFragment(), "RECENT");
+        adapter.addFragment(new ContactsFragment(), "CONTACTS");
+        viewPager.setAdapter(adapter);
     }
 
     static class TabViewPagerAdapter extends FragmentStatePagerAdapter
     {
+        private final List<Fragment> mFragmentList = new ArrayList<>();
+        private final List<String> mFragmentTitleList = new ArrayList<>();
 
         public TabViewPagerAdapter(FragmentManager fm)
         {
@@ -233,29 +146,38 @@ public class MainActivity extends AppCompatActivity
         @Override
         public Fragment getItem(int position)
         {
-            return ResultFragment.newInstance(position);
+            return mFragmentList.get(position);
         }
 
         @Override
         public int getCount()
         {
-            return 3;
+            return mFragmentList.size();
+        }
+
+        public void addFragment(Fragment fragment, String title)
+        {
+            mFragmentList.add(fragment);
+            mFragmentTitleList.add(title);
         }
 
         @Override
         public CharSequence getPageTitle(int position)
         {
-            switch (position)
-            {
-                case 0:
-                    return "Filters";
-                case 1:
-                    return "Recents";
-                case 2:
-                    return "Contacts";
-                default:
-                    return "Tab";
-            }
+            return mFragmentTitleList.get(position);
+        }
+    }
+
+    class NotificationReceiver extends BroadcastReceiver
+    {
+        @Override
+        public void onReceive(Context context, Intent intent)
+        {
+
+            NotificationObject temp = new NotificationObject(intent.getStringExtra(getString(R.string.notification_package)), intent.getStringExtra(getString(R.string.notification_title)),
+                    intent.getStringExtra(getString(R.string.notification_content)), intent.getStringExtra(getString(R.string.notification_contact)),
+                    intent.getLongExtra(getString(R.string.notification_time), 0));
+            //TODO:append new notif
         }
     }
 }
