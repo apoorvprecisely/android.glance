@@ -136,6 +136,7 @@ public class CardViewRecyclerAdapter extends RecyclerView.Adapter<CardHolder>
         {
             notifMap.get(key).addFirst(temp);
         }
+        
         else
         {
             LinkedList<NotificationObject> list = new LinkedList();
